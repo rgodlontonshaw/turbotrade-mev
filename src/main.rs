@@ -1,15 +1,12 @@
 use solana_client::rpc_client::RpcClient;
 use solana_sdk::pubkey::Pubkey;
 use solana_sdk::signature::Signature;
-use solana_transaction_status::UiTransactionEncoding;
+use solana_transaction_status::{UiTransactionEncoding, EncodedConfirmedTransactionWithStatusMeta};
 use std::error::Error;
 use std::str::FromStr;
 
-
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-
-    
     // Solana RPC endpoint
     let rpc_url = "https://api.mainnet-beta.solana.com";
     let client = RpcClient::new(rpc_url.to_string());
@@ -25,10 +22,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 let tx_signature = Signature::from_str(&signature_info.signature).unwrap();
                 match client.get_transaction(&tx_signature, UiTransactionEncoding::JsonParsed) {
                     Ok(transaction) => {
-                        if let Some(tx) = transaction.transaction.transaction.decode() {
-                            let instructions = tx.message.instructions();
-                            for instruction in instructions {
-                                println!("Instruction detected: {:?}", instruction);
+                        // Access `meta` from `transaction.transaction`
+                        if let Some(meta) = transaction.transaction.meta {
+                            if let Some(logs) = meta.log_messages.as_ref().map(|s| s.as_ref() as &[String]) {
+
+                                for log in logs {
+                                    println!("Log message: {:?}", log);
+                                }
                             }
                         }
                     }
